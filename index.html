@@ -2,9 +2,10 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
     <title>学习时间表</title>
     <style>
+        /* 原有样式保持不变 */
         :root {
             --primary: #ff9a9e;
             --secondary: #4CAF50;
@@ -80,13 +81,11 @@
             border: 1px solid rgba(var(--primary), 0.1);
         }
 
-        /* 当前任务样式 */
         .current {
             border-color: var(--primary);
             box-shadow: 0 4px 20px rgba(var(--primary), 0.15);
             position: relative;
         }
-
 
         @keyframes line-glow {
             0% { opacity: 0.8; }
@@ -94,7 +93,6 @@
             100% { opacity: 0.8; }
         }
 
-        /* 进度条样式 */
         .progress-container {
             position: absolute;
             bottom: 0;
@@ -156,9 +154,64 @@
             cursor: pointer;
             transition: all 0.3s ease;
         }
+
+        /* 新增响应式样式 */
+        @media (max-width: 768px) {
+            .time-block {
+                flex-direction: column;
+                align-items: flex-start;
+                padding: 1rem;
+            }
+
+            .time-range {
+                width: auto;
+                margin-bottom: 0.5rem;
+                padding-left: 28px;
+            }
+
+            .event {
+                padding-left: 0;
+                margin-left: 0;
+                border-left: none;
+                padding-top: 0.5rem;
+            }
+
+            .stats-grid {
+                grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+                gap: 1rem;
+            }
+
+            .stat-card {
+                padding: 1rem;
+            }
+
+            .timeline {
+                padding: 1.5rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .header h1 {
+                font-size: 1.5rem;
+            }
+
+            .time-range {
+                font-size: 14px;
+            }
+
+            .event {
+                font-size: 14px;
+            }
+
+            .theme-toggle {
+                padding: 6px 12px;
+                font-size: 14px;
+            }
+        }
     </style>
 </head>
 <body>
+    <!-- 保持原有HTML结构不变 -->
     <div class="container">
         <div class="header">
             <h1>📅 学习日程管理系统</h1>
