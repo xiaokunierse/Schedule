@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>学习时间表</title>
+    <style>
+        :root {
+            --primary: #ff9a9e;
+            --secondary: #4CAF50;
+            --background: #ffffff;
+            --text: #333333;
+            --success: #81C784;
+        }
+
+        [data-theme="dark"] {
+            --primary: #fad0cf;
+            --secondary: #81C784;
+            --background: #2d2d2d;
+            --text: #e0e0e0;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui;
+            background: var(--background);
+            color: var(--text);
+            margin: 0;
+            padding: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            padding: 1rem;
+            background: rgba(var(--primary), 0.1);
+            border-radius: 12px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: rgba(var(--primary), 0.05);
+            padding: 1.5rem;
+            border-radius: 8px;
+            text-align: center;
+            border: 1px solid rgba(var(--primary), 0.1);
+        }
+
+        .timeline {
+            background: var(--background);
+            border-radius: 16px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            padding: 2rem;
+            position: relative;
+        }
+
+        .time-block {
+            display: flex;
+            align-items: center;
+            padding: 1.2rem;
+            margin: 1rem 0;
+            border-radius: 12px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+            background: var(--background);
+            border: 1px solid rgba(var(--primary), 0.1);
+        }
+
+        /* 当前任务样式 */
+        .current {
+            border-color: var(--primary);
+            box-shadow: 0 4px 20px rgba(var(--primary), 0.15);
+            position: relative;
+        }
+
+
+        @keyframes line-glow {
+            0% { opacity: 0.8; }
+            50% { opacity: 0.3; }
+            100% { opacity: 0.8; }
+        }
+
+        /* 进度条样式 */
+        .progress-container {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: rgba(var(--primary), 0.1);
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(135deg, #ff9a9e, #fad0c4);
+            transition: width 0.5s linear;
+        }
+
+        .time-range {
+            width: 140px;
+            font-weight: 600;
+            color: var(--text);
+            flex-shrink: 0;
+            position: relative;
+            padding-left: 24px;
+        }
+
+        .time-range::before {
+            content: "🕒";
+            position: absolute;
+            left: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            opacity: 0.6;
+        }
+
+        .event {
+            flex-grow: 1;
+            padding-left: 1.5rem;
+            margin-left: 1.5rem;
+            border-left: 2px solid rgba(var(--primary), 0.1);
+            font-weight: 500;
+        }
+
+        .completed {
+            background: rgba(var(--success), 0.08);
+            opacity: 0.7;
+            border-style: dashed;
+        }
+
+        .completed .event {
+            text-decoration: line-through;
+            opacity: 0.8;
+        }
+
+        .theme-toggle {
+            background: none;
+            border: 2px solid var(--primary);
+            color: var(--primary);
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📅 学习日程管理系统</h1>
+            <button class="theme-toggle" onclick="toggleTheme()">🌓 主题切换</button>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <h3>已完成任务</h3>
+                <p id="completedCount">0 项</p>
+            </div>
+            <div class="stat-card">
+                <h3>累计时长</h3>
+                <p id="totalMinutes">0 分钟</p>
+            </div>
+            <div class="stat-card">
+                <h3>今日进度</h3>
+                <p id="dailyProgress">0%</p>
+            </div>
+        </div>
+
+        <div class="timeline" id="timeline"></div>
+    </div>
+
+    <script>
+        // 定义不同日期的时间表
+        const studySchedule = [
+            { id: 1, time: "06:00-06:30", event: "起床晨练", duration: 30 },
+            { id: 2, time: "06:30-07:00", event: "洗漱与早餐准备", duration: 30 },
+            { id: 3, time: "07:00-07:30", event: "营养早餐", duration: 30 },
+            { id: 4, time: "07:30-08:00", event: "早读时间", duration: 30 },
+            { id: 5, time: "08:00-12:00", event: "课堂学习/复习", duration: 240 },
+            { id: 6, time: "10:00-10:10", event: "课间休息", duration: 10 },
+            { id: 7, time: "11:45-12:00", event: "午餐时间", duration: 15 },
+            { id: 8, time: "12:30-13:30", event: "午休时光", duration: 60 },
+            { id: 9, time: "13:30-14:30", event: "数学训练", duration: 60 },
+            { id: 10, time: "14:30-15:30", event: "模拟练习", duration: 60 },
+            { id: 11, time: "15:30-15:45", event: "下午茶歇", duration: 15 },
+            { id: 12, time: "15:45-17:30", event: "自主学习", duration: 105 },
+            { id: 13, time: "17:30-18:00", event: "晚餐时间", duration: 30 },
+            { id: 14, time: "18:00-19:00", event: "自由活动", duration: 60 },
+            { id: 15, time: "19:00-22:00", event: "专项复习", duration: 180 }
+        ];
+
+        const  imitateScheduleA = [
+            { id: 1, time: "06:00-06:30", event: "起床晨练 充沛精力", duration: 30 },
+            { id: 2, time: "06:30-07:00", event: "简单洗漱 准备早餐", duration: 30 },
+            { id: 3, time: "07:00-07:30", event: "营养早餐 补充营养", duration: 30 },
+            { id: 4, time: "09:00-11:00", event: "物理", duration: 120 },
+            { id: 5, time: "11:45-12:00", event: "午餐时间 清淡食物", duration: 15 },
+            { id: 6, time: "12:30-13:30", event: "午休时光 放松音乐", duration: 60 },
+            { id: 7, time: "15:00-17:00", event: "数学", duration: 120 },
+            { id: 8, time: "17:30-18:00", event: "晚餐时间 清淡食物", duration: 30 },
+            { id: 9, time: "18:00-19:00", event: "晚餐休息 轻松活动", duration: 60 },
+            { id: 10, time: "19:30-20:45", event: "化学", duration: 75 }
+        ];
+        const  imitateScheduleB = [
+            { id: 1, time: "06:00-06:30", event: "起床晨练 充沛精力", duration: 30 },
+            { id: 2, time: "06:30-07:00", event: "简单洗漱 准备早餐", duration: 30 },
+            { id: 3, time: "07:00-07:30", event: "营养早餐 补充营养", duration: 30 },
+            { id: 4, time: "09:00-11:00", event: "语文", duration: 120 },
+            { id: 5, time: "11:45-12:00", event: "午餐时间 清淡食物", duration: 15 },
+            { id: 6, time: "12:30-13:30", event: "午休时光 放松音乐", duration: 60 },
+            { id: 7, time: "15:00-17:00", event: "外语", duration: 120 },
+            { id: 8, time: "17:30-18:00", event: "晚餐时间 清淡食物", duration: 30 },
+            { id: 9, time: "18:00-19:00", event: "晚餐休息 轻松活动", duration: 60 },
+            { id: 10, time: "19:30-20:45", event: "生物", duration: 75 }
+        ];
+        
+        let state = {
+            theme: localStorage.getItem('theme') || 'light'
+        };
+
+        document.body.setAttribute('data-theme', state.theme);
+
+        function render() {
+            const today = new Date().getDay();
+            const currentSchedule = (today === 0) ? studySchedule : 
+                                  (today === 1) ? studySchedule : 
+                                  (today === 2) ? imitateScheduleA : 
+                                  (today === 3) ? studySchedule : 
+                                  (today === 4) ? imitateScheduleB : 
+                                  (today === 5) ? studySchedule : 
+                                  (today === 6) ? imitateScheduleA : 
+                                  studySchedule; // 默认显示周一时间表
+
+            const now = new Date();
+            const timeline = document.getElementById('timeline');
+            let html = '';
+            
+            const completed = currentSchedule.filter(item => {
+                const endTime = parseTime(item.time.split('-')[1]);
+                return now > endTime;
+            }).map(item => item.id);
+
+            currentSchedule.forEach(item => {
+                const isCompleted = completed.includes(item.id);
+                const isCurrent = isCurrentTimeBlock(item.time);
+                const progress = isCurrent ? getProgress(item.time) : 0;
+
+                html += `
+                    <div class="time-block ${isCompleted ? 'completed' : ''} ${isCurrent ? 'current' : ''}">
+                        <div class="time-range">${item.time}</div>
+                        <div class="event">${item.event}</div>
+                        ${isCurrent ? `
+                        <div class="progress-container">
+                            <div class="progress-bar" style="width: ${progress}%"></div>
+                        </div>
+                        ` : ''}
+                    </div>
+                `;
+            });
+            
+            timeline.innerHTML = html;
+            updateStatistics(completed, currentSchedule);
+        }
+
+        function updateStatistics(completed, currentSchedule) {
+            document.getElementById('completedCount').textContent = 
+                `${completed.length} 项`;
+
+            const totalMinutes = currentSchedule
+                .filter(item => completed.includes(item.id))
+                .reduce((sum, item) => sum + item.duration, 0);
+            document.getElementById('totalMinutes').textContent = 
+                `${totalMinutes} 分钟`;
+
+            const progress = Math.round((completed.length / currentSchedule.length) * 100);
+            document.getElementById('dailyProgress').textContent = 
+                `${progress}%`;
+        }
+
+
+        function toggleTheme() {
+            state.theme = state.theme === 'light' ? 'dark' : 'light';
+            document.body.setAttribute('data-theme', state.theme);
+            localStorage.setItem('theme', state.theme);
+        }
+
+        function isCurrentTimeBlock(timeRange) {
+            const now = new Date();
+            const [start, end] = timeRange.split('-');
+            return now >= parseTime(start) && now <= parseTime(end);
+        }
+
+        function parseTime(timeStr) {
+            const [h, m] = timeStr.split(':').map(Number);
+            const date = new Date();
+            date.setHours(h, m, 0);
+            return date;
+        }
+
+        function getProgress(timeRange) {
+            const [start, end] = timeRange.split('-');
+            const total = timeToMinutes(end) - timeToMinutes(start);
+            const current = new Date().getHours() * 60 + new Date().getMinutes();
+            return Math.min(100, ((current - timeToMinutes(start)) / total * 100));
+        }
+
+        function timeToMinutes(timeStr) {
+            const [h, m] = timeStr.split(':').map(Number);
+            return h * 60 + m;
+        }
+
+        setInterval(render, 1000);
+        render();
+    </script>
+</body>
+</html>
